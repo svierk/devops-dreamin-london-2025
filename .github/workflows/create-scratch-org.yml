@@ -1,4 +1,4 @@
-name: create-scratch-org
+name: Create Scratch Org
 
 on:
   workflow_dispatch:
@@ -11,11 +11,12 @@ on:
         type: string
       email:
         description: Scratch Org User Email
+        required: true
         type: string
       lifespan:
         description: Lifespan in Days (1-30)
         type: number
-        default: 1
+        default: 30
       deploy-metadata:
         description: Should Metadata be deployed?
         type: boolean
@@ -81,13 +82,13 @@ jobs:
         if: ${{ inputs.push-data }}
         uses: svierk/sfdx-data-import@main
         with:
-          file-path: './data/accounts.csv'
-          object-type: 'Account'
-          external-id: 'Id'
+          file-path: "./data/accounts.csv"
+          object-type: "Account"
+          external-id: "Id"
       - name: Import JSON Data
         if: ${{ inputs.push-data }}
         uses: svierk/sfdx-data-import@main
         with:
-          file-path: './data/accounts.json,./data/contacts.json'
+          file-path: "./data/accounts.json,./data/contacts.json"
       - name: Generate Password
         run: sf org generate password --target-org scratch-${{ github.run_id }}
