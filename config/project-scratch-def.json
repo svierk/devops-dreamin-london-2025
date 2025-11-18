@@ -1,0 +1,19 @@
+{
+  "orgName": "sample company",
+  "edition": "Enterprise",
+  "features": ["Communities", "PersonAccounts", "ServiceCloud"],
+  "settings": {
+    "chatterSettings": {
+      "enableChatter": true
+    },
+    "communitiesSettings": {
+      "enableNetworksEnabled": true
+    },
+    "experienceBundleSettings": {
+      "enableExperienceBundleMetadata": true
+    },
+    "languageSettings": {
+      "enableTranslationWorkbench": true
+    }
+  }
+}
