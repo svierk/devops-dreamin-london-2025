@@ -11,11 +11,12 @@ on:
         type: string
       email:
         description: Scratch Org User Email
+        required: true
         type: string
       lifespan:
         description: Lifespan in Days (1-30)
         type: number
-        default: 1
+        default: 30
       deploy-metadata:
         description: Should Metadata be deployed?
         type: boolean
