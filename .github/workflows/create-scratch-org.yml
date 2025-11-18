@@ -1,0 +1,93 @@
+name: create-scratch-org
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: Scratch Org Name
+        type: string
+      description:
+        description: Scratch Org Description
+        type: string
+      email:
+        description: Scratch Org User Email
+        type: string
+      lifespan:
+        description: Lifespan in Days (1-30)
+        type: number
+        default: 1
+      deploy-metadata:
+        description: Should Metadata be deployed?
+        type: boolean
+        default: true
+      install-packages:
+        description: Should Packages be installed?
+        type: boolean
+        default: true
+      packages:
+        description: Packages to be installed
+        type: string
+        default: "['04t6S000001UjutQAC']" # Install Marketing Cloud package
+      push-data:
+        description: Should Test Data be pushed?
+        type: boolean
+        default: true
+
+jobs:
+  create-scratch-org:
+    name: Create Scratch Org
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 0
+      - name: Select Node Version
+        uses: svierk/get-node-version@main
+      - name: Install SF CLI
+        uses: svierk/sfdx-cli-setup@main
+      - name: Authorize DevHub
+        uses: svierk/sfdx-login@main
+        with:
+          client-id: ${{ secrets.SFDX_CONSUMER_KEY }}
+          jwt-secret-key: ${{ secrets.SFDX_JWT_SECRET_KEY }}
+          username: ${{ secrets.SFDX_USERNAME }}
+          set-default: true
+          set-default-dev-hub: true
+          alias: devhub
+      - name: Create Scratch Org
+        uses: svierk/sfdx-create-scratch-org@main
+        with:
+          alias: scratch-${{ github.run_id }}
+          name: ${{ inputs.name }}
+          description: ${{ inputs.description }}
+          admin-email: ${{ inputs.email }}
+          set-default: true
+          definition-file: config/project-scratch-def.json
+          target-dev-hub: devhub
+          duration-days: ${{ inputs.lifespan }}
+          wait: 10
+      - name: Package Installation
+        if: ${{ inputs.install-packages }}
+        uses: svierk/sfdx-package-installation@main
+        with:
+          packages: ${{ inputs.packages }}
+          wait: 30
+          publish-wait: 20
+      - name: Deploy Metadata
+        if: ${{ inputs.deploy-metadata }}
+        run: sf project deploy start
+      - name: Import CSV Data
+        if: ${{ inputs.push-data }}
+        uses: svierk/sfdx-data-import@main
+        with:
+          file-path: './data/accounts.csv'
+          object-type: 'Account'
+          external-id: 'Id'
+      - name: Import JSON Data
+        if: ${{ inputs.push-data }}
+        uses: svierk/sfdx-data-import@main
+        with:
+          file-path: './data/accounts.json,./data/contacts.json'
+      - name: Generate Password
+        run: sf org generate password --target-org scratch-${{ github.run_id }}

@@ -1,0 +1,18 @@
+{
+  "records": [
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccountRef1"
+      },
+      "Name": "JSON IMPORT TEST 1"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccountRef2"
+      },
+      "Name": "JSON IMPORT TEST 2"
+    }
+  ]
+}
