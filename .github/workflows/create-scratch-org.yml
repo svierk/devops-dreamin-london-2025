@@ -77,7 +77,9 @@ jobs:
           publish-wait: 20
       - name: Deploy Metadata
         if: ${{ inputs.deploy-metadata }}
-        run: sf project deploy start
+        uses: svierk/sfdx-deploy@main
+        with:
+          destructive-changes: false
       - name: Import CSV Data
         if: ${{ inputs.push-data }}
         uses: svierk/sfdx-data-import@main

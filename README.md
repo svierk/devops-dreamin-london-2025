@@ -27,4 +27,6 @@ Below you will find a number of freely usable actions I created to simplify the 
 - [🔐 SFDX Login](https://github.com/svierk/sfdx-login)
 - [🌩️ SFDX Create Scratch Org](https://github.com/svierk/sfdx-create-scratch-org)
 - [📦 SFDX Package Installation](https://github.com/svierk/sfdx-package-installation)
+- [🚀 SFDX Deploy](https://github.com/svierk/sfdx-deploy)
 - [💾 SFDX Data Import](https://github.com/svierk/sfdx-data-import)
+- [✅ SFDX Run Tests](https://github.com/svierk/sfdx-run-tests)
