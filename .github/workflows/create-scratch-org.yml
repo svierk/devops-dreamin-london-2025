@@ -1,5 +1,10 @@
 name: Create Scratch Org
 
+# Scratch org self-service: authorizes the Dev Hub, creates a scratch org,
+# optionally installs dependency packages, deploys the source, imports sample
+# data and generates a login password so the org can be handed over to a
+# project member straight from the Actions tab.
+
 on:
   workflow_dispatch:
     inputs:
@@ -34,6 +39,8 @@ on:
         type: boolean
         default: true
 
+# Least-privilege token: this workflow only reads the repository and talks to
+# Salesforce via the CLI, it never writes back to GitHub.
 permissions:
   contents: read
 
@@ -43,15 +50,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@main
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false # the GITHUB_TOKEN is not needed after the checkout - don't leave it in .git/config
+
+      # NODE_VERSION_OVERRIDE is a repository variable; leave it unset to fall
+      # back to engines.node from package.json, populate it to pin a version
+      # without touching this workflow file.
       - name: Select Node Version
-        uses: svierk/get-node-version@main
+        uses: svierk/get-node-version@v1.5.1
+        with:
+          node-version: ${{ vars.NODE_VERSION_OVERRIDE }}
+
       - name: Install SF CLI
-        uses: svierk/sfdx-cli-setup@main
+        uses: svierk/sfdx-cli-setup@v1.1.2
+
+      # The JWT flow credentials come from repository secrets and are consumed by
+      # the action directly - they are never echoed into a shell command.
       - name: Authorize DevHub
-        uses: svierk/sfdx-login@main
+        uses: svierk/sfdx-login@v1.4.2
         with:
           client-id: ${{ secrets.SFDX_CONSUMER_KEY }}
           jwt-secret-key: ${{ secrets.SFDX_JWT_SECRET_KEY }}
@@ -59,8 +77,10 @@ jobs:
           set-default: true
           set-default-dev-hub: true
           alias: devhub
+
       - name: Create Scratch Org
-        uses: svierk/sfdx-create-scratch-org@main
+        id: scratch
+        uses: svierk/sfdx-create-scratch-org@v1.3.1
         with:
           alias: scratch-${{ github.run_id }}
           name: ${{ inputs.name }}
@@ -71,29 +91,57 @@ jobs:
           target-dev-hub: devhub
           duration-days: ${{ inputs.lifespan }}
           wait: 10
+
       - name: Package Installation
         if: ${{ inputs.install-packages }}
-        uses: svierk/sfdx-package-installation@main
+        uses: svierk/sfdx-package-installation@v1.2.1
         with:
           packages: ${{ inputs.packages }}
+          target-org: ${{ steps.scratch.outputs.username }}
           wait: 30
           publish-wait: 20
+
       - name: Deploy Metadata
         if: ${{ inputs.deploy-metadata }}
-        uses: svierk/sfdx-deploy@main
+        uses: svierk/sfdx-deploy@v1.2.1
         with:
-          destructive-changes: false
+          target-org: ${{ steps.scratch.outputs.username }}
+          destructive-changes: false # fresh scratch org: additive deploy, nothing to delete
+
       - name: Import CSV Data
         if: ${{ inputs.push-data }}
-        uses: svierk/sfdx-data-import@main
+        uses: svierk/sfdx-data-import@v1.3.1
         with:
           file-path: './data/accounts.csv'
           object-type: 'Account'
           external-id: 'Id'
+          target-org: ${{ steps.scratch.outputs.username }}
+
       - name: Import JSON Data
         if: ${{ inputs.push-data }}
-        uses: svierk/sfdx-data-import@main
+        uses: svierk/sfdx-data-import@v1.3.1
         with:
           file-path: './data/accounts.json,./data/contacts.json'
-      - name: Generate Password
-        run: sf org generate password --target-org scratch-${{ github.run_id }}
+          target-org: ${{ steps.scratch.outputs.username }}
+
+      - name: Generate Login Password
+        env:
+          TARGET_ORG: ${{ steps.scratch.outputs.username }} # passed as an env var, never interpolated into the script body
+        run: |
+          # Keep the generated password out of the plain build log: mask it in the
+          # log stream (::add-mask::) and surface the credentials only in the job
+          # summary. Note the summary is still visible to anyone with Actions read
+          # access - restrict who can run/read this workflow, or switch to a private
+          # hand-over channel (e.g. email the requested address) if that is too broad.
+          password=$(sf org generate password --target-org "$TARGET_ORG" --json | jq -r '.result.password')
+          echo "::add-mask::$password"
+          instance_url=$(sf org display --target-org "$TARGET_ORG" --json | jq -r '.result.instanceUrl')
+          {
+            echo "### 🌩️ Scratch org ready for handover"
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Username | \`$TARGET_ORG\` |"
+            echo "| Password | \`$password\` |"
+            echo "| Instance URL | $instance_url |"
+          } >> "$GITHUB_STEP_SUMMARY"

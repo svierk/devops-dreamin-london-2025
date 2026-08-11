@@ -1,5 +1,11 @@
 name: Validation
 
+# Validates changes to this repository: checks formatting and linting, deploys
+# the metadata to the target org and runs the Apex and LWC tests against it.
+#
+# The job name below ("Validation") is the context of the required status check
+# configured in the `main` ruleset - renaming the job means updating the ruleset.
+
 on:
   push:
     branches: [main]
@@ -7,6 +13,7 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Least-privilege token: this workflow only reads the repository.
 permissions:
   contents: read
 
@@ -16,29 +23,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@main
+        uses: actions/checkout@v7.0.1
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # required for the delta detection of the deployment
+          persist-credentials: false # the GITHUB_TOKEN is not needed after the checkout - don't leave it in .git/config
+
+      # NODE_VERSION_OVERRIDE is a repository variable; leave it unset to fall
+      # back to engines.node from package.json, populate it to pin a version
+      # without touching this workflow file.
       - name: Select Node Version
-        uses: svierk/get-node-version@main
+        uses: svierk/get-node-version@v1.5.1
+        with:
+          node-version: ${{ vars.NODE_VERSION_OVERRIDE }}
+
       - name: Install Dependencies
-        run: npm install --ignore-scripts
+        run: npm ci --ignore-scripts # lockfile-exact install, no lifecycle scripts from dependencies
+
       - name: Check Prettier
-        run: npm run prettier
+        run: npm run prettier:verify # verify only - a validation job must never rewrite the checked out sources
+
       - name: Check ESLint
-        run: npm run lint:sonar
+        run: npm run lint
+
       - name: Install SF CLI
-        uses: svierk/sfdx-cli-setup@main
+        uses: svierk/sfdx-cli-setup@v1.1.2
+
+      # The JWT flow credentials come from repository secrets and are consumed by
+      # the action directly - they are never echoed into a shell command.
       - name: Salesforce Org Login
-        uses: svierk/sfdx-login@main
+        uses: svierk/sfdx-login@v1.4.2
         with:
           client-id: ${{ secrets.SFDX_CONSUMER_KEY }}
           jwt-secret-key: ${{ secrets.SFDX_JWT_SECRET_KEY }}
           username: ${{ vars.SFDX_USERNAME }}
+
       - name: Deploy Metadata
-        uses: svierk/sfdx-deploy@main
+        uses: svierk/sfdx-deploy@v1.2.1
+
       - name: Run Tests
-        uses: svierk/sfdx-run-tests@main
+        uses: svierk/sfdx-run-tests@v1.1.0
         with:
           apex: true
           lwc: true
