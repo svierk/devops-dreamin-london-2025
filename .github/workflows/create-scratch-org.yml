@@ -59,17 +59,17 @@ jobs:
       # back to engines.node from package.json, populate it to pin a version
       # without touching this workflow file.
       - name: Select Node Version
-        uses: svierk/get-node-version@v1.5.1
+        uses: svierk/get-node-version@v1.5.2
         with:
           node-version: ${{ vars.NODE_VERSION_OVERRIDE }}
 
       - name: Install SF CLI
-        uses: svierk/sfdx-cli-setup@v1.1.2
+        uses: svierk/sfdx-cli-setup@v1.1.3
 
       # The JWT flow credentials come from repository secrets and are consumed by
       # the action directly - they are never echoed into a shell command.
       - name: Authorize DevHub
-        uses: svierk/sfdx-login@v1.4.2
+        uses: svierk/sfdx-login@v1.4.3
         with:
           client-id: ${{ secrets.SFDX_CONSUMER_KEY }}
           jwt-secret-key: ${{ secrets.SFDX_JWT_SECRET_KEY }}
@@ -80,7 +80,7 @@ jobs:
 
       - name: Create Scratch Org
         id: scratch
-        uses: svierk/sfdx-create-scratch-org@v1.3.1
+        uses: svierk/sfdx-create-scratch-org@v1.3.2
         with:
           alias: scratch-${{ github.run_id }}
           name: ${{ inputs.name }}
@@ -94,7 +94,7 @@ jobs:
 
       - name: Package Installation
         if: ${{ inputs.install-packages }}
-        uses: svierk/sfdx-package-installation@v1.2.1
+        uses: svierk/sfdx-package-installation@v1.2.2
         with:
           packages: ${{ inputs.packages }}
           target-org: ${{ steps.scratch.outputs.username }}
@@ -103,14 +103,14 @@ jobs:
 
       - name: Deploy Metadata
         if: ${{ inputs.deploy-metadata }}
-        uses: svierk/sfdx-deploy@v1.2.1
+        uses: svierk/sfdx-deploy@v1.2.2
         with:
           target-org: ${{ steps.scratch.outputs.username }}
           destructive-changes: false # fresh scratch org: additive deploy, nothing to delete
 
       - name: Import CSV Data
         if: ${{ inputs.push-data }}
-        uses: svierk/sfdx-data-import@v1.3.1
+        uses: svierk/sfdx-data-import@v1.3.2
         with:
           file-path: './data/accounts.csv'
           object-type: 'Account'
@@ -119,7 +119,7 @@ jobs:
 
       - name: Import JSON Data
         if: ${{ inputs.push-data }}
-        uses: svierk/sfdx-data-import@v1.3.1
+        uses: svierk/sfdx-data-import@v1.3.2
         with:
           file-path: './data/accounts.json,./data/contacts.json'
           target-org: ${{ steps.scratch.outputs.username }}
