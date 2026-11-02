@@ -80,7 +80,7 @@ jobs:
 
       - name: Create Scratch Org
         id: scratch
-        uses: svierk/sfdx-create-scratch-org@v1.3.2
+        uses: svierk/sfdx-create-scratch-org@v1.3.3
         with:
           alias: scratch-${{ github.run_id }}
           name: ${{ inputs.name }}
@@ -103,7 +103,7 @@ jobs:
 
       - name: Deploy Metadata
         if: ${{ inputs.deploy-metadata }}
-        uses: svierk/sfdx-deploy@v1.3.0
+        uses: svierk/sfdx-deploy@v1.3.1
         with:
           target-org: ${{ steps.scratch.outputs.username }}
           destructive-changes: false # fresh scratch org: additive deploy, nothing to delete
