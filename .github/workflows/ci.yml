@@ -62,8 +62,14 @@ jobs:
           jwt-secret-key: ${{ secrets.SFDX_JWT_SECRET_KEY }}
           username: ${{ vars.SFDX_USERNAME }}
 
+      # A check-only deployment doesn't save anything to the org. Its Apex tests
+      # run against the code of the pull request. The test step below only sees
+      # what's in the org, which on a pull request is the state of main.
       - name: Deploy Metadata
         uses: svierk/sfdx-deploy@v1.3.1
+        with:
+          dry-run: ${{ github.event_name == 'pull_request' }}
+          test-level: ${{ github.event_name == 'pull_request' && 'RunLocalTests' || '' }}
 
       - name: Run Tests
         uses: svierk/sfdx-run-tests@v1.3.0
