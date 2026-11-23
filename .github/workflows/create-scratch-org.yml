@@ -103,7 +103,7 @@ jobs:
 
       - name: Deploy Metadata
         if: ${{ inputs.deploy-metadata }}
-        uses: svierk/sfdx-deploy@v1.5.0
+        uses: svierk/sfdx-deploy@v1.6.0
         with:
           target-org: ${{ steps.scratch.outputs.username }}
           destructive-changes: false # fresh scratch org: additive deploy, nothing to delete
